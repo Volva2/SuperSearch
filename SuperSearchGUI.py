@@ -1,22 +1,90 @@
 import sys
 import os
-import time
-import threading
+from PIL import Image
+from PIL.ImageQt import ImageQt
+from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot, QSize
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QListWidget, QListWidgetItem, QLabel, QPushButton, QSizePolicy, QLayout, QSplitter
+from PySide6.QtGui import QFont, QIcon, QCursor
 from search_content import search_content
 from search_everything import search_everything
-from PySide6.QtConcurrent import run
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QSplitter, QWidget, QLineEdit, QListWidget, QPushButton, QSizePolicy
-from PySide6.QtGui import QFont, QIcon, QCursor
+
+class Worker(QObject):
+    finished = Signal(str, list)
+
+    @Slot(str)
+    def get_matches(self, text):
+        if text.startswith("in:"):
+            matches = search_everything(text[3:])
+            self.finished.emit('everything', matches)
+        elif '||' in text:
+            path = text.split(' || ')[0].split(":")[1]
+
+            matches = search_content(text[0], text[1])
+            self.finished.emit('content', matches)
+
+class CustomFileWidget(QWidget):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+
+        font_family = "Victor Mono"
+        font_size = 15
+        font = QFont(font_family, font_size)
+        names_size = QSize(self.width()/1.25, self.height())
+
+        container_layout = QHBoxLayout(self)
+
+        content_layout = QVBoxLayout()
+
+        filename = QLabel(text[0])
+        filepath = QLabel(text[1])
+        
+        filename.setStyleSheet("background: transparent")
+        filepath.setStyleSheet("background: transparent")
+
+        filename.setFont(font)
+        filepath.setFont(font)
+
+        filename.setWordWrap(True)
+        filepath.setWordWrap(True)
+
+        content_layout.setContentsMargins(self.width()/20, self.height()/20, self.width()/20, self.height()/20)
+        content_layout.addWidget(filename)
+        content_layout.addWidget(filepath)
+
+        options_layout = QHBoxLayout()
+
+        open_folder_icon = QLabel()
+        open_folder_icon.setPixmap(QPixmap("C:\\Users\\volva\\OneDrive\\Desktop\\Programming\\SuperSearch\\folder.png").scaledToWidth(32))
+
+        options_layout.addWidget(QLabel())
+
+        container_layout.addLayout(content_layout)
+        container_layout.addLayout(options_layout)
+        
+
+    def get_file_icon(filepath, large_icon=True):
+        pass
 
 class SupperSearchLauncher(QWidget):
+
+    input_change_signal = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SuperSearch")
         self.setWindowIconText("SuperSearch 0.0.0")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        # self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+        self.worker = Worker()
+        self.text_thread = QThread()
+        self.worker.moveToThread(self.text_thread)
+
+        self.input_change_signal.connect(self.worker.get_matches)
+        self.worker.finished.connect(self.on_processing_finished)
+
+        self.text_thread.start()
 
         self.setMaximumWidth(2000)
         self.setMinimumWidth(2000)
@@ -27,8 +95,9 @@ class SupperSearchLauncher(QWidget):
         self.yDiv = self.height()/50
         self.centerXY()
 
-        self.setStyleSheet("background:rgba(130, 153, 255, 0);")
-        self.setGeometry(self.x/self.xDiv, self.y/self.yDiv, 1000, 200)
+        # self.setStyleSheet("background:rgba(130, 153, 255, 0);")
+        self.setStyleSheet("background:rgba(34, 34, 34, 0.75);")
+        self.setGeometry(self.x/self.xDiv, self.y/self.yDiv, self.x/1.5, self.y/1.5)
 
         self.icon = QIcon("C:\\Usersvolva\\OneDrive\\Desktop\\Programming\\SuperSearch\\SuperSearch.png")
         self.setWindowIcon(self.icon)
@@ -53,8 +122,8 @@ class SupperSearchLauncher(QWidget):
         containerLayout = QVBoxLayout(self)
         
         mainLayout = QHBoxLayout(self)
-        mainLayout.addWidget(self.exit)
         mainLayout.addWidget(self.input)
+        mainLayout.addWidget(self.exit)
         mainLayout.setContentsMargins(self.layoutMargins, self.layoutMargins, self.layoutMargins, self.layoutMargins-50)
         containerLayout.addLayout(mainLayout)
 
@@ -62,16 +131,16 @@ class SupperSearchLauncher(QWidget):
         resultsLayout.addWidget(self.results)
         resultsLayout.setContentsMargins(self.layoutMargins, 0, self.layoutMargins, self.layoutMargins)
         containerLayout.addLayout(resultsLayout)
-
-        self.setLayout(containerLayout)
-
+        
+        input_margin = self.input.width()/20
         self.input.setPlaceholderText("Start your search here...")
         self.input.setFont(self.font)
-        self.input.setTextMargins(self.textMargin, self.textMargin, self.textMargin, self.textMargin)
+        self.input.setTextMargins(input_margin, input_margin*2, input_margin, input_margin*2)
         self.input.setMaximumWidth(self.width()/1.5)
-        self.input.textChanged.connect(lambda: run(self.on_search))
+        self.input.textChanged.connect(self.on_search)
 
         self.results.setFont(self.font)
+        self.results.setContentsMargins(10, 5, 10, 5)
         self.results.itemActivated.connect(self.open_item)
         self.results.setVisible(False)
         self.results.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
@@ -81,23 +150,41 @@ class SupperSearchLauncher(QWidget):
         self.exit.setText('Exit')
         self.exit.setStyleSheet("QPushButton {padding: 1em; max-width: 50%;}")
         self.exit.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.exit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.exit.clicked.connect(QApplication.instance().quit)
-
+    
     def on_search(self, text):
-        self.results.setVisible(True)
         self.results.clear()
-        
+        self.results.addItem("Processing ...")
+        if text == "":
+            self.results.setVisible(False)
+        else:
+            self.results.setVisible(True)
+
         if not text:
             return
         # Decide if it's a content search
-        if text.startswith("in:"):
-            matches = (search_everything(text.split(':')[1]))
-            for m in matches[:20]:
-                self.results.addItem(m)
+        
+        self.input_change_signal.emit(text)
+    
+    def on_processing_finished(self, type, matches):
+        self.results.clear()
+
+        if type == 'everything':
+            for m in matches[:100]:
+                m = m.split('\n')
+                item = QListWidgetItem(self.results)
+                customWidget = CustomFileWidget(m)
+                item.setSizeHint(customWidget.sizeHint())
+                self.results.setItemWidget(item, customWidget)
+
+            if self.results.count() > 0:
+                first_item = self.results.item(0)
+                self.results.setCurrentItem(first_item)
+                self.results.clearSelection()
         else:
-            matches = search_content(text[3:])
-            for m in matches[:20]:
-                self.results.addItem(f"{m['file']}:{m['line']}  {m['text']}")
+            for m in matches:
+                self.results.addItem(f"{m['file']}:{m['line']}\n{m['text']}\n")
 
     def open_item(self, item):
         path = item.text().split()[0]

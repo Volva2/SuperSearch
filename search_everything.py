@@ -67,7 +67,7 @@ def search_everything(query: str):
     results_list = []
 
     #show results
-    for i in (range(num_results) if num_results < 1000 else range(500)):
+    for i in range(num_results):
         everything_dll.Everything_GetResultFullPathNameW(i,filepath,260)
         filename = everything_dll.Everything_GetResultFileNameW(i)
         everything_dll.Everything_GetResultDateModified(i,date_modified_filetime)
@@ -75,6 +75,8 @@ def search_everything(query: str):
         results_list.append("Filename: {}\nFilePath: {}\n".format(filename,ctypes.wstring_at(filepath)))
 
     return results_list
+
+search_everything("search")
 
 # def search_everything(query: str):
 #     result = subprocess.run(
