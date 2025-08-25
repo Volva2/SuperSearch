@@ -1,10 +1,8 @@
 import sys
 import os
-from PIL import Image
-from PIL.ImageQt import ImageQt
-from PySide6.QtGui import QPixmap, QIcon
-from PySide6.QtCore import Qt, QObject, QThread, Signal, Slot, QSize
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QListWidget, QListWidgetItem, QLabel, QPushButton, QSizePolicy, QLayout, QSplitter
+from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt, QObject, QEvent, QThread, Signal, Slot, QSize
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QListWidget, QListWidgetItem, QLabel, QPushButton, QSizePolicy, QMessageBox
 from PySide6.QtGui import QFont, QIcon, QCursor
 from search_content import search_content
 from search_everything import search_everything
@@ -13,15 +11,17 @@ class Worker(QObject):
     finished = Signal(str, list)
 
     @Slot(str)
-    def get_matches(self, text):
+    def get_file_matches(self, text):
         if text.startswith("in:"):
             matches = search_everything(text[3:])
             self.finished.emit('everything', matches)
-        elif '||' in text:
-            path = text.split(' || ')[0].split(":")[1]
 
-            matches = search_content(text[0], text[1])
-            self.finished.emit('content', matches)
+    @Slot(str, list)
+    def get_content_matches(self, text, list_of_items=[]):
+        matches = search_everything(text[3:])
+        content = text.split(' || ')[1].split(":")[1]
+        matches = search_content(text[0], text[1])
+        self.finished.emit('content', matches)
 
 class CustomFileWidget(QWidget):
     def __init__(self, text, parent=None):
@@ -32,9 +32,8 @@ class CustomFileWidget(QWidget):
         font = QFont(font_family, font_size)
         names_size = QSize(self.width()/1.25, self.height())
 
-        container_layout = QHBoxLayout(self)
-
         content_layout = QVBoxLayout()
+        container_layout = QHBoxLayout(self)
 
         filename = QLabel(text[0])
         filepath = QLabel(text[1])
@@ -47,21 +46,16 @@ class CustomFileWidget(QWidget):
 
         filename.setWordWrap(True)
         filepath.setWordWrap(True)
+        
+        filename.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        filepath.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        content_layout.setContentsMargins(self.width()/20, self.height()/20, self.width()/20, self.height()/20)
+        container_layout.setContentsMargins(self.width()/15, self.height()/20, self.width()/15, self.height()/20)
+        content_layout.setSpacing(0)
         content_layout.addWidget(filename)
         content_layout.addWidget(filepath)
 
-        options_layout = QHBoxLayout()
-
-        open_folder_icon = QLabel()
-        open_folder_icon.setPixmap(QPixmap("C:\\Users\\volva\\OneDrive\\Desktop\\Programming\\SuperSearch\\folder.png").scaledToWidth(32))
-
-        options_layout.addWidget(QLabel())
-
         container_layout.addLayout(content_layout)
-        container_layout.addLayout(options_layout)
-        
 
     def get_file_icon(filepath, large_icon=True):
         pass
@@ -81,7 +75,7 @@ class SupperSearchLauncher(QWidget):
         self.text_thread = QThread()
         self.worker.moveToThread(self.text_thread)
 
-        self.input_change_signal.connect(self.worker.get_matches)
+        self.input_change_signal.connect(self.worker.get_file_matches)
         self.worker.finished.connect(self.on_processing_finished)
 
         self.text_thread.start()
@@ -163,9 +157,10 @@ class SupperSearchLauncher(QWidget):
 
         if not text:
             return
-        # Decide if it's a content search
         
-        self.input_change_signal.emit(text)
+        # Decide if it's a content search
+        if text.startswith("in:") and "||" not in text:
+            self.input_change_signal.emit(text)
     
     def on_processing_finished(self, type, matches):
         self.results.clear()
