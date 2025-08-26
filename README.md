@@ -1,2 +1,2 @@
 # SuperSearch
-![SuperSearch.png]
+![SuperSearch Logo](SuperSearch.png)
