@@ -72,7 +72,7 @@ def search_everything(query: str):
         filename = everything_dll.Everything_GetResultFileNameW(i)
         everything_dll.Everything_GetResultDateModified(i,date_modified_filetime)
         everything_dll.Everything_GetResultSize(i,file_size)
-        results_list.append("Filename: {}\nFilePath: {}\n".format(filename,ctypes.wstring_at(filepath)))
+        results_list.append("{}\n{}\n".format(filename,ctypes.wstring_at(filepath)))
 
     return results_list
 
