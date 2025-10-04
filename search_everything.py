@@ -40,7 +40,7 @@ def search_everything(query: str):
     num_results = num_file_results+num_folder_results
 
     #show the number of results
-    print("Result Count: {} | Files Found: {}, Folders Found: {}".format(num_results, num_file_results, num_folder_results))
+    # print("Result Count: {} | Files Found: {}, Folders Found: {}".format(num_results, num_file_results, num_folder_results))
 
     #convert a windows FILETIME to a python datetime
     #https://stackoverflow.com/questions/39481221/convert-datetime-back-to-windows-64-bit-filetime
@@ -76,10 +76,11 @@ def search_everything(query: str):
 
     return results_list
 
-search_everything("search")
-
-# def search_everything(query: str):
-#     result = subprocess.run(
-#         ["es.exe", "-s", query], capture_output=True, text=True
-#     )
-#     return result.stdout.splitlines()
+if __name__ == '__main__':
+    print("Searching for File/Folder called SUPERSEARCH")
+    found_matches = search_everything("SUPERSEARCH")
+    if found_matches:
+        for match in found_matches[:5]:
+            print(f"- Filename: {match.split("\n")[0]}, Path to File: {match.split("\n")[1]}\n")
+    else:
+        print("No matches found or an error occurred.")

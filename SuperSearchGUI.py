@@ -3,7 +3,7 @@ import os
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt, QObject, QEvent, QThread, Signal, Slot, QSize
 from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QListWidget, QListWidgetItem, QLabel, QPushButton, QSizePolicy, QMessageBox
-from PySide6.QtGui import QFont, QIcon, QCursor, QKeyEvent
+from PySide6.QtGui import QFont, QIcon, QCursor, QKeyEvent, QPixmap
 from search_content import search_content
 from search_everything import search_everything
 
@@ -12,43 +12,73 @@ class Worker(QObject):
 
     @Slot(str)
     def get_file_matches(self, text):
-        if text.startswith("in:"):
+        if text.startswith("in") and "||" in text:
+            everything_matches = search_everything(text.split("||")[0].strip()[3:])
+            content_matches = []
+            
+            for i in everything_matches:
+                content_matches.append(search_content(text.split("||")[1].strip(), i.split("\n")[1]))
+
+            matches = [everything_matches, content_matches]
+            print(matches)
+            self.finished.emit('content', matches)
+        elif text.startswith("in:"):
             matches = search_everything(text[3:])
             self.finished.emit('everything', matches)
+        # else:
+        #     ps_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+        #     subprocess.run(f"{ps_path} -Command {text} -ErrorAction SilentlyContinue", shell=True)
+
 
 class CustomFileWidget(QWidget):
-    def __init__(self, text, parent=None):
+    def __init__(self, text="No text", content="", content_path="", parent=None):
         super().__init__(parent)
 
         font_family = "Victor Mono"
         font_size = 15
         font = QFont(font_family, font_size)
-        names_size = QSize(self.width()/1.25, self.height())
+        file_icon = QPixmap('.\icons\document.png')
 
         content_layout = QVBoxLayout()
         container_layout = QHBoxLayout(self)
 
         filename = QLabel(text[0])
-        filepath = QLabel(text[1])
+        filepath = QLabel(text[1]) if content == "" else QLabel(content_path)
+        search_content = QLabel(content)
         
         filename.setStyleSheet("background: transparent")
         filepath.setStyleSheet("background: transparent")
+        search_content.setStyleSheet("background: transparent")
 
         filename.setFont(font)
         filepath.setFont(font)
+        search_content.setFont(font)
 
         filename.setWordWrap(True)
         filepath.setWordWrap(True)
+        search_content.setWordWrap(True)
         
         filename.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         filepath.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        # container_layout.setContentsMargins(self.width()/15, self.height()/20, self.width()/15, self.height()/20)
         content_layout.setSpacing(0)
         content_layout.addWidget(filename)
         content_layout.addWidget(filepath)
+        if content != "":
+            content_layout.addWidget(search_content)
 
-        container_layout.addLayout(content_layout)
+        icon = QLabel()
+        icon.setPixmap(file_icon.scaled(50, 50))
+        icon.resize(50, 50)
+        icon.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        icon.setContentsMargins(15,5,15,5)
+        icon.setStyleSheet("background: transparent")
+
+        if text != "No text":
+            container_layout.addWidget(icon)
+            container_layout.addLayout(content_layout)
+        else:
+            container_layout.addWidget(QLabel("No such content was found"))
         
         # Store the file path for opening
         self.file_path = text[1]
@@ -176,9 +206,7 @@ class SupperSearchLauncher(QWidget):
         if not text:
             return
         
-        # Decide if it's a content search
-        if text.startswith("in:") and "||" not in text:
-            self.input_change_signal.emit(text)
+        self.input_change_signal.emit(text)
     
     def on_everything_searched(self, type, matches):
         self.results.clear()
@@ -195,11 +223,26 @@ class SupperSearchLauncher(QWidget):
                 # Select the first item by default
                 self.results.setCurrentRow(0)
         else:
-            for m in matches:
-                self.results.addItem(f"{m['file']}:{m['line']}\n{m['text']}\n")
-            
+            index = 0
+            content = ""
+
+            for match in matches[1][index][:50]:
+                file = matches[0][index].split('\n')
+                content+=f"Line {match["line"]}: {match["text"]}\n"
+                content_path = match["file"]
+
+                item = QListWidgetItem(self.results)
+                customWidget = CustomFileWidget(file, content, content_path)
+                item.setSizeHint(customWidget.sizeHint())
+                self.results.setItemWidget(item, customWidget)
+                index+=1
+
             if self.results.count() > 0:
+                # Select the first item by default
                 self.results.setCurrentRow(0)
+    
+    def on_app_search(self, matches):
+        pass
 
     def open_item(self, item):
         """Open the selected file."""
