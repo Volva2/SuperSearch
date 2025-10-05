@@ -11,7 +11,7 @@ class Worker(QObject):
     finished = Signal(str, list)
 
     @Slot(str)
-    def get_file_matches(self, text):
+    def get_file_matches(self, text: str):
         if text.startswith("in") and "||" in text:
             everything_matches = search_everything(text.split("||")[0].strip()[3:])
             content_matches = []
@@ -37,18 +37,23 @@ class CustomFileWidget(QWidget):
         font_family = "Victor Mono"
         font_size = 15
         font = QFont(font_family, font_size)
-        file_icon = QPixmap('.\icons\document.png')
 
         content_layout = QVBoxLayout()
         container_layout = QHBoxLayout(self)
 
-        filename = QLabel(text[0])
+        filename = QLabel(text[0]) if content == "" else QLabel(content_path.split("\\")[-1])
         filepath = QLabel(text[1]) if content == "" else QLabel(content_path)
         search_content = QLabel(content)
         
-        filename.setStyleSheet("background: transparent")
-        filepath.setStyleSheet("background: transparent")
-        search_content.setStyleSheet("background: transparent")
+        filename.setStyleSheet("padding: 0%; margin: 0%; background: transparent")
+        filepath.setStyleSheet("padding: 0%; margin: 0%; background: transparent")
+        search_content.setStyleSheet("""
+            padding: 15%;
+            background: transparent;
+            color: beige;
+        """)
+
+        file_icon = QPixmap('.\icons\document.png') if os.path.isfile(filepath.text()) else QPixmap('.\icons\\folder.png')
 
         filename.setFont(font)
         filepath.setFont(font)
@@ -157,7 +162,7 @@ class SupperSearchLauncher(QWidget):
         self.input.setFont(self.font)
         self.input.setTextMargins(input_margin, input_margin*2, input_margin, input_margin*2)
         self.input.setMaximumWidth(self.width()/1.5)
-        self.input.textChanged.connect(self.on_search)
+        self.input.returnPressed.connect(self.on_search)
 
         self.results.setFont(self.font)
         self.results.itemActivated.connect(self.open_item)
@@ -176,39 +181,37 @@ class SupperSearchLauncher(QWidget):
         self.exit.clicked.connect(QApplication.instance().quit)
 
     def keyPressEvent(self, event: QKeyEvent):
-        """Handle key press events for navigation and file opening."""
         if not self.results.isVisible() or self.results.count() == 0:
             super().keyPressEvent(event)
             return
 
         elif event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
-            # Open the currently selected item
             current_item = self.results.currentItem()
             if current_item:
                 self.open_item(current_item)
             event.accept()
             
         elif event.key() == Qt.Key.Key_Escape:
-            # Clear search and hide results
             self.input.clear()
             self.results.setVisible(False)
             self.input.setFocus()
             event.accept()
     
-    def on_search(self, text):
-        self.results.clear()
-        self.results.addItem("Processing ...")
-        if text == "":
-            self.results.setVisible(False)
-        else:
-            self.results.setVisible(True)
+    def on_search(self):
+        text = self.input.text().strip()
 
         if not text:
+            self.results.clear()
+            self.results.setVisible(False)
             return
-        
+
+        self.results.clear()
+        self.results.addItem("Searching, please wait...")
+        self.results.setVisible(True)
+
         self.input_change_signal.emit(text)
     
-    def on_everything_searched(self, type, matches):
+    def on_everything_searched(self, type: str, matches: list):
         self.results.clear()
 
         if type == 'everything':
@@ -240,20 +243,13 @@ class SupperSearchLauncher(QWidget):
             if self.results.count() > 0:
                 # Select the first item by default
                 self.results.setCurrentRow(0)
-    
-    def on_app_search(self, matches):
-        pass
 
-    def open_item(self, item):
-        """Open the selected file."""
-        # Get the custom widget for this item
+    def open_item(self, item: QWidget):
         custom_widget = self.results.itemWidget(item)
         
         if custom_widget and hasattr(custom_widget, 'file_path'):
-            # If it's a custom file widget, get the file path
             file_path = custom_widget.file_path
         else:
-            # For regular text items, extract path from the text
             item_text = item.text()
             if ':' in item_text:
                 file_path = item_text.split(':')[0]
