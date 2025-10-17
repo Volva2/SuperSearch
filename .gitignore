@@ -2,3 +2,4 @@
 /Everything-SDK/
 /icons/
 *.spec
+.gitignore
