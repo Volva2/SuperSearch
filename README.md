@@ -4,4 +4,4 @@
 # SuperSearch
 #### A simple files and file contents search app for windows.
 
-![SuperSearch Logo](SuperSearch.png)
+![SuperSearch Logo](./icons/SuperSearch.png)
