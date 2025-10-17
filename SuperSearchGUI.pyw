@@ -12,7 +12,7 @@ class Worker(QObject):
 
     @Slot(str)
     def get_file_matches(self, text: str):
-        if text.startswith("in") and "||" in text:
+        if text.casefold().startswith("in:") and "||" in text:
             everything_matches = search_everything(text.split("||")[0].strip()[3:])
             content_matches = []
             
@@ -22,7 +22,7 @@ class Worker(QObject):
             matches = [everything_matches, content_matches]
             print(matches)
             self.finished.emit('content', matches)
-        elif text.startswith("in:"):
+        elif text.startswith("in:") or text.startswith("IN:"):
             matches = search_everything(text[3:])
             self.finished.emit('everything', matches)
         # else:
@@ -67,6 +67,7 @@ class CustomFileWidget(QWidget):
         filepath.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         content_layout.setSpacing(0)
+        content_layout.setContentsMargins(0,0,0,0)
         content_layout.addWidget(filename)
         content_layout.addWidget(filepath)
         if content != "":
