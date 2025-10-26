@@ -1,0 +1,6 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/icons">
+    <file alias="folder.png">C:\Users\volva\OneDrive\Desktop\Programming\SuperSearch\icons\folder.png</file>
+    <file alias="document.png">C:\Users\volva\OneDrive\Desktop\Programming\SuperSearch\icons\document.png</file>
+    </qresource>
+</RCC>

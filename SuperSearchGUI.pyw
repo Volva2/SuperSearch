@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QVBoxLayout, QHBoxLayout, QWidget, Q
 from PySide6.QtGui import QFont, QIcon, QCursor, QKeyEvent, QPixmap
 from search_content import search_content
 from search_everything import search_everything
+import resources_rc
 
 class Worker(QObject):
     finished = Signal(str, list)
@@ -53,7 +54,7 @@ class CustomFileWidget(QWidget):
             color: beige;
         """)
 
-        file_icon = QPixmap('.\icons\document.png') if os.path.isfile(filepath.text()) else QPixmap('.\icons\\folder.png')
+        file_icon = QPixmap(':icons\document.png') if os.path.isfile(filepath.text()) else QPixmap(':icons\\folder.png')
 
         filename.setFont(font)
         filepath.setFont(font)
@@ -262,6 +263,7 @@ class SupperSearchLauncher(QWidget):
             os.startfile(file_path)
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not open file: {file_path}\nError: {str(e)}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

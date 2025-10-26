@@ -1,5 +1,4 @@
 /build/
 /Everything-SDK/
-/icons/
 *.spec
 .gitignore
