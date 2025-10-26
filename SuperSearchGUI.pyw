@@ -21,7 +21,7 @@ class Worker(QObject):
                 content_matches.append(search_content(text.split("||")[1].strip(), i.split("\n")[1]))
 
             matches = [everything_matches, content_matches]
-            print(matches)
+            # print(matches)
             self.finished.emit('content', matches)
         elif text.startswith("in:") or text.startswith("IN:"):
             matches = search_everything(text[3:])
@@ -259,7 +259,7 @@ class SupperSearchLauncher(QWidget):
                 file_path = item_text.split('\n')[1] if '\n' in item_text else item_text
         
         try:
-            print(file_path)
+            # print(file_path)
             os.startfile(file_path)
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not open file: {file_path}\nError: {str(e)}")

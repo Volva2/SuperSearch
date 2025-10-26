@@ -2,15 +2,17 @@ import subprocess
 import json
 import os
 
+CREATE_NO_WINDOW = 0x08000000
+
 def search_content(term: str, folder=None):
     if folder is None:
         folder = os.path.expanduser("~")
 
-    command = ["rg", "--json", "-F", "-w", term, folder]
+    command = ["rg", "--json", "-F", "-i", term, folder]
 
     try:
         result = subprocess.run(
-            command, capture_output=True, text=True, check=True, encoding='utf-8'
+            command, creationflags=CREATE_NO_WINDOW, capture_output=True, text=True, check=True, encoding='utf-8'
         )
     except FileNotFoundError:
         print("Error: 'rg' (ripgrep) command not found.")
