@@ -189,9 +189,9 @@ class SupperSearchLauncher(QWidget):
 
         elif event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             current_item = self.results.currentItem()
-            if current_item:
-                self.open_item(current_item)
-            event.accept()
+            # if current_item:
+            #     self.open_item(current_item)
+            # event.accept()
             
         elif event.key() == Qt.Key.Key_Escape:
             self.input.clear()
