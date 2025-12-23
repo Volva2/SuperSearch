@@ -23,6 +23,9 @@ class Worker(QObject):
             matches = [everything_matches, content_matches]
             # print(matches)
             self.finished.emit('content', matches)
+        elif text.startswith("app:") or text.startswith("APP:"):
+            matches = search_everything(text[4:]+".exe")
+            self.finished.emit('everything', matches)
         elif text.startswith("in:") or text.startswith("IN:"):
             matches = search_everything(text[3:])
             self.finished.emit('everything', matches)
@@ -231,7 +234,7 @@ class SupperSearchLauncher(QWidget):
             index = 0
             content = ""
 
-            for match in matches[1][index][:50]:
+            for match in matches[1][index]:
                 file = matches[0][index].split('\n')
                 content+=f"Line {match["line"]}: {match["text"]}\n"
                 content_path = match["file"]
